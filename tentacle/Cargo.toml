@@ -39,6 +39,8 @@ multiaddr = { path = "../multiaddr", package = "tentacle-multiaddr", version = "
 url = "2.5.4"
 molecule = "0.8.0"
 
+anyhow = "1.0"
+
 # upnp
 igd = { version = "0.15", optional = true, package = "igd-next" }
 

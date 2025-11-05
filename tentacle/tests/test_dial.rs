@@ -53,12 +53,23 @@ impl ServiceHandle for EmptySHandle {
         let error_type = match error {
             ServiceError::DialerError { error, .. } => {
                 match error {
-                    DialerErrorKind::TransportError(TransportErrorKind::Io(e)) => {
-                        assert_eq!(io::ErrorKind::ConnectionRefused, e.kind())
+                    DialerErrorKind::TransportError(err) => {
+                        let transport = err
+                            .downcast_ref::<TransportErrorKind>()
+                            .expect("expected transport error kind");
+                        match transport {
+                            TransportErrorKind::Io(e) => {
+                                assert_eq!(io::ErrorKind::ConnectionRefused, e.kind())
+                            }
+                            other => panic!(
+                                "test fail, expected TransportErrorKind::Io, got {:?}",
+                                other
+                            ),
+                        }
                     }
-                    e => panic!(
-                        "test fail, expected DialerErrorKind::TransportError(TransportErrorKind::Io), got {:?}",
-                        e
+                    other => panic!(
+                        "test fail, expected DialerErrorKind::TransportError, got {:?}",
+                        other
                     ),
                 }
                 ServiceErrorType::Dialer

@@ -25,7 +25,7 @@ async fn connect(
     config: TlsConfig,
     domain_name: String,
     tcp_config: TcpSocketConfig,
-) -> Result<(Multiaddr, TlsStream)> {
+) -> anyhow::Result<(Multiaddr, TlsStream)> {
     let tls_client_config = config
         .tls_client_config
         .ok_or_else(|| TransportErrorKind::TlsError("client config not found".to_string()))?;
@@ -48,7 +48,7 @@ async fn connect(
                 ),
             ))
         }
-        None => Err(TransportErrorKind::NotSupported(original.unwrap_or(addr))),
+        None => Err(TransportErrorKind::NotSupported(original.unwrap_or(addr)).into()),
     }
 }
 
@@ -70,7 +70,7 @@ impl TlsTransport {
 }
 
 pub type TlsDialFuture =
-    TransportFuture<Pin<Box<dyn Future<Output = Result<(Multiaddr, TlsStream)>> + Send>>>;
+    TransportFuture<Pin<Box<dyn Future<Output = anyhow::Result<(Multiaddr, TlsStream)>> + Send>>>;
 
 impl TransportDial for TlsTransport {
     type DialFuture = TlsDialFuture;

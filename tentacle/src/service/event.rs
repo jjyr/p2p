@@ -96,7 +96,7 @@ pub enum ServiceError {
         /// Session context
         session_context: Arc<SessionContext>,
         /// error, such as `InvalidData`
-        error: std::io::Error,
+        error: anyhow::Error,
     },
     /// Protocol handle error, will cause memory leaks/abnormal CPU usage
     /// tentacle will close after this error output

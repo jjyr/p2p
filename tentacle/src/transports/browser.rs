@@ -48,7 +48,7 @@ async fn connect(
     addr: Multiaddr,
     timeout: Duration,
     ty: TransportType,
-) -> Result<(Multiaddr, BrowserStream)> {
+) -> anyhow::Result<(Multiaddr, BrowserStream)> {
     let schema = match ty {
         TransportType::Ws => "ws",
         TransportType::Wss => "wss",
@@ -66,7 +66,7 @@ async fn connect(
 
             loop {
                 if iter.peek().is_none() {
-                    return Err(TransportErrorKind::NotSupported(addr.clone()));
+                    return Err(TransportErrorKind::NotSupported(addr.clone()).into());
                 }
                 match iter.peek() {
                     Some(Protocol::Dns4(_)) | Some(Protocol::Dns6(_)) => (),
@@ -91,7 +91,7 @@ async fn connect(
                     (Protocol::Dns6(domain), Protocol::Tcp(port)) => {
                         break format!("{}://{}:{}", schema, domain, port);
                     }
-                    _ => return Err(TransportErrorKind::NotSupported(addr.clone())),
+                    _ => return Err(TransportErrorKind::NotSupported(addr.clone()).into()),
                 }
             }
         }
@@ -103,7 +103,10 @@ async fn connect(
     )
     .await
     {
-        Err(_) => Err(TransportErrorKind::Io(io::ErrorKind::TimedOut.into())),
+        Err(_) => Err(
+            anyhow::Error::from(TransportErrorKind::Io(io::ErrorKind::TimedOut.into()))
+                .context("connect timeout"),
+        ),
         Ok(res) => {
             let stream = res?;
             Ok((addr, BrowserStream::new(stream.into())))
@@ -126,8 +129,9 @@ impl BrowserTransport {
     }
 }
 
-pub type BrowserDialFuture =
-    TransportFuture<Pin<Box<dyn Future<Output = Result<(Multiaddr, BrowserStream)>> + Send>>>;
+pub type BrowserDialFuture = TransportFuture<
+    Pin<Box<dyn Future<Output = anyhow::Result<(Multiaddr, BrowserStream)>> + Send>>,
+>;
 
 impl TransportListen for BrowserTransport {
     type ListenFuture = ();

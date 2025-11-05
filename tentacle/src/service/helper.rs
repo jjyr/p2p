@@ -200,7 +200,7 @@ where
                     if let Err(err) = event_sender
                         .send(SessionEvent::ListenError {
                             address,
-                            error: TransportErrorKind::Io(io_err),
+                            error: TransportErrorKind::Io(io_err).into(),
                         })
                         .await
                     {
@@ -211,7 +211,7 @@ where
                     if let Err(err) = event_sender
                         .send(SessionEvent::ListenError {
                             address,
-                            error: TransportErrorKind::Io(io_err),
+                            error: TransportErrorKind::Io(io_err).into(),
                         })
                         .await
                     {
@@ -223,7 +223,7 @@ where
                     if let Err(err) = event_sender
                         .send(SessionEvent::ListenError {
                             address,
-                            error: TransportErrorKind::Io(io_err),
+                            error: TransportErrorKind::Io(io_err).into(),
                         })
                         .await
                     {
@@ -245,7 +245,7 @@ where
                     if let Err(err) = event_sender
                         .send(SessionEvent::ListenError {
                             address: clear_addr,
-                            error: TransportErrorKind::Io(io_err),
+                            error: TransportErrorKind::Io(io_err).into(),
                         })
                         .await
                     {
@@ -272,7 +272,8 @@ where
                             error: TransportErrorKind::Io(std::io::Error::new(
                                 io_err.kind(),
                                 io_err.to_string(),
-                            )),
+                            ))
+                            .into(),
                         })
                         .await
                     {
@@ -281,7 +282,7 @@ where
                     if let Err(err) = event_sender
                         .send(SessionEvent::ListenError {
                             address: tls_net,
-                            error: TransportErrorKind::Io(io_err),
+                            error: TransportErrorKind::Io(io_err).into(),
                         })
                         .await
                     {
@@ -308,7 +309,8 @@ where
                             error: TransportErrorKind::Io(std::io::Error::new(
                                 io_err.kind(),
                                 io_err.to_string(),
-                            )),
+                            ))
+                            .into(),
                         })
                         .await
                     {
@@ -317,7 +319,7 @@ where
                     if let Err(err) = event_sender
                         .send(SessionEvent::ListenError {
                             address: ws_net,
-                            error: TransportErrorKind::Io(io_err),
+                            error: TransportErrorKind::Io(io_err).into(),
                         })
                         .await
                     {
@@ -346,7 +348,8 @@ where
                             error: TransportErrorKind::Io(std::io::Error::new(
                                 io_err.kind(),
                                 io_err.to_string(),
-                            )),
+                            ))
+                            .into(),
                         })
                         .await
                     {
@@ -358,7 +361,8 @@ where
                             error: TransportErrorKind::Io(std::io::Error::new(
                                 io_err.kind(),
                                 io_err.to_string(),
-                            )),
+                            ))
+                            .into(),
                         })
                         .await
                     {
@@ -367,7 +371,7 @@ where
                     if let Err(err) = event_sender
                         .send(SessionEvent::ListenError {
                             address: tls_net,
-                            error: TransportErrorKind::Io(io_err),
+                            error: TransportErrorKind::Io(io_err).into(),
                         })
                         .await
                     {

@@ -290,7 +290,7 @@ where
         Control::new(self.control_sender.clone())
     }
 
-    fn keep_alive(&mut self, cx: &mut Context, ping_at: Instant) -> Result<(), io::Error> {
+    fn keep_alive(&mut self, cx: &mut Context, ping_at: Instant) -> Result<(), anyhow::Error> {
         // If the remote peer does not follow the protocol, doesn't ack ping message,
         // there may be a memory leak, yamux does not clearly define how this should be handled.
         // According to the authoritative [spec](https://tools.ietf.org/html/rfc6455#section-5.5.2)
@@ -303,7 +303,10 @@ where
         {
             #[cfg(feature = "metrics")]
             metrics::counter!("yamux.ping_timeout").increment(1);
-            return Err(io::ErrorKind::TimedOut.into());
+            return Err(
+                anyhow::Error::from(io::Error::from(io::ErrorKind::TimedOut))
+                    .context("ping timeout"),
+            );
         }
 
         let ping_id = self.send_ping(cx, None)?;
@@ -645,7 +648,7 @@ impl<T> Stream for Session<T>
 where
     T: AsyncRead + AsyncWrite + Unpin,
 {
-    type Item = Result<StreamHandle, io::Error>;
+    type Item = Result<StreamHandle, anyhow::Error>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<Self::Item>> {
         if self.is_dead() {
@@ -1072,7 +1075,10 @@ mod test {
                         });
                     }
                     Some(Err(err)) => {
-                        if err.kind() == io::ErrorKind::TimedOut {
+                        if err
+                            .downcast_ref::<io::Error>()
+                            .is_some_and(|err| err.kind() == io::ErrorKind::TimedOut)
+                        {
                             // This is expected, since we are not sending any data
                             break;
                         }

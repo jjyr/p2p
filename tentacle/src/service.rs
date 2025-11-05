@@ -19,7 +19,7 @@ use crate::{
     buffer::Buffer,
     channel::{mpsc as priority_mpsc, mpsc::Priority},
     context::{ServiceContext, SessionContext, SessionController},
-    error::{DialerErrorKind, ListenErrorKind, ProtocolHandleErrorKind, TransportErrorKind},
+    error::{DialerErrorKind, ListenErrorKind, ProtocolHandleErrorKind},
     multiaddr::{Multiaddr, Protocol},
     protocol_handle_stream::{
         ServiceProtocolEvent, ServiceProtocolStream, SessionProtocolEvent, SessionProtocolStream,
@@ -57,7 +57,7 @@ use bytes::Bytes;
 #[cfg(feature = "tls")]
 pub use crate::service::config::TlsConfig;
 
-type Result<T> = std::result::Result<T, TransportErrorKind>;
+type Result<T> = anyhow::Result<T>;
 
 struct InnerService<K> {
     protocol_configs: IntMap<ProtocolId, ProtocolMeta>,
@@ -245,7 +245,7 @@ where
 
                 Ok(addr)
             }
-            Err(err) => Err(err),
+            Err(err) => Err(err.into()),
         }
     }
 
@@ -365,7 +365,10 @@ where
                         listen_address: addr,
                         incoming,
                     },
-                    Err(error) => SessionEvent::ListenError { address, error },
+                    Err(error) => SessionEvent::ListenError {
+                        address,
+                        error: error.into(),
+                    },
                 };
                 if let Err(err) = sender.send(event).await {
                     error!("Listen address result send back error: {:?}", err);

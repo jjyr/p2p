@@ -18,7 +18,7 @@ use crate::{
     buffer::{Buffer, PriorityBuffer, SendResult},
     channel::{QuickSinkExt, mpsc as priority_mpsc, mpsc::Priority},
     context::SessionContext,
-    error::{HandshakeErrorKind, ProtocolHandleErrorKind, TransportErrorKind},
+    error::{HandshakeErrorKind, ProtocolHandleErrorKind},
     multiaddr::Multiaddr,
     protocol_handle_stream::{ServiceProtocolEvent, SessionProtocolEvent},
     protocol_select::{ProtocolInfo, client_select, server_select},
@@ -72,13 +72,13 @@ pub(crate) enum SessionEvent {
         /// remote address
         address: Multiaddr,
         /// error
-        error: TransportErrorKind,
+        error: anyhow::Error,
     },
     ListenError {
         /// listen address
         address: Multiaddr,
         /// error
-        error: TransportErrorKind,
+        error: anyhow::Error,
     },
     /// Protocol data
     ProtocolMessage {
@@ -103,7 +103,7 @@ pub(crate) enum SessionEvent {
     ChangeState {
         id: SessionId,
         state: SessionState,
-        error: Option<io::Error>,
+        error: Option<anyhow::Error>,
     },
     ProtocolSelectError {
         /// Session id
@@ -126,7 +126,7 @@ pub(crate) enum SessionEvent {
     },
     MuxerError {
         id: SessionId,
-        error: std::io::Error,
+        error: anyhow::Error,
     },
     /// Protocol handle error, will cause memory leaks/abnormal CPU usage
     ProtocolHandleError {
@@ -969,12 +969,16 @@ where
             Poll::Ready(Some(Err(err))) => {
                 debug!("session poll error: {:?}", err);
 
-                let event = match err.kind() {
-                    ErrorKind::BrokenPipe
-                    | ErrorKind::ConnectionAborted
-                    | ErrorKind::ConnectionReset
-                    | ErrorKind::NotConnected
-                    | ErrorKind::UnexpectedEof => SessionEvent::ChangeState {
+                let io_kind = err.downcast_ref::<io::Error>().map(|err| err.kind());
+
+                let event = match io_kind {
+                    Some(
+                        ErrorKind::BrokenPipe
+                        | ErrorKind::ConnectionAborted
+                        | ErrorKind::ConnectionReset
+                        | ErrorKind::NotConnected
+                        | ErrorKind::UnexpectedEof,
+                    ) => SessionEvent::ChangeState {
                         state: SessionState::RemoteClose,
                         error: None,
                         id: self.id,

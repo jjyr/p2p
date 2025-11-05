@@ -12,7 +12,7 @@ async fn connect(
     onion_address: impl Future<Output = Result<Multiaddr>>,
     timeout: Duration,
     tcp_config: TcpSocketConfig,
-) -> Result<(Multiaddr, TcpStream)> {
+) -> anyhow::Result<(Multiaddr, TcpStream)> {
     let onion_addr = onion_address.await?;
     let stream = onion_dial(onion_addr.clone(), tcp_config, timeout).await?;
     Ok((onion_addr, stream))
@@ -34,7 +34,7 @@ impl OnionTransport {
 }
 
 pub type OnionDialFuture =
-    TransportFuture<Pin<Box<dyn Future<Output = Result<(Multiaddr, TcpStream)>> + Send>>>;
+    TransportFuture<Pin<Box<dyn Future<Output = anyhow::Result<(Multiaddr, TcpStream)>> + Send>>>;
 
 impl TransportDial for OnionTransport {
     type DialFuture = OnionDialFuture;

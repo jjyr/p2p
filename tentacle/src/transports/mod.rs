@@ -295,7 +295,7 @@ mod os {
     }
 
     impl Future for MultiDialFuture {
-        type Output = Result<(Multiaddr, MultiStream)>;
+        type Output = anyhow::Result<(Multiaddr, MultiStream)>;
 
         fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
             match self.get_mut() {
@@ -303,9 +303,10 @@ mod os {
                     Pin::new(&mut inner.map(|res| res.map(|res| (res.0, MultiStream::Tcp(res.1)))))
                         .poll(cx)
                 }
-                MultiDialFuture::Memory(inner) => Pin::new(
-                    &mut inner.map(|res| res.map(|res| (res.0, MultiStream::Memory(res.1)))),
-                )
+                MultiDialFuture::Memory(inner) => Pin::new(&mut inner.map(|res| {
+                    res.map(|res| (res.0, MultiStream::Memory(res.1)))
+                        .map_err(Into::into)
+                }))
                 .poll(cx),
                 #[cfg(feature = "ws")]
                 MultiDialFuture::Ws(inner) => Pin::new(
@@ -445,12 +446,15 @@ mod os {
         addr: SocketAddr,
         tcp_config: TcpSocketConfig,
         timeout: Duration,
-    ) -> Result<TcpStream> {
+    ) -> anyhow::Result<TcpStream> {
         match crate::runtime::timeout(timeout, crate::runtime::connect(addr, tcp_config)).await {
-            Err(_) => Err(TransportErrorKind::Io(io::ErrorKind::TimedOut.into())),
+            Err(_) => Err(anyhow::Error::from(TransportErrorKind::Io(
+                io::ErrorKind::TimedOut.into(),
+            ))
+            .context("tcp dial timeout")),
             Ok(res) => res.map_err(|err| {
                 if err.to_string().contains("connect_by_proxy") {
-                    TransportErrorKind::ProxyError(err)
+                    TransportErrorKind::ProxyError(err).into()
                 } else {
                     err.into()
                 }
@@ -464,17 +468,20 @@ mod os {
         onion_addr: MultiAddr,
         tcp_config: TcpSocketConfig,
         timeout: Duration,
-    ) -> Result<TcpStream> {
+    ) -> anyhow::Result<TcpStream> {
         match crate::runtime::timeout(
             timeout,
             crate::runtime::connect_onion(onion_addr, tcp_config),
         )
         .await
         {
-            Err(_) => Err(TransportErrorKind::Io(io::ErrorKind::TimedOut.into())),
+            Err(_) => Err(anyhow::Error::from(TransportErrorKind::Io(
+                io::ErrorKind::TimedOut.into(),
+            ))
+            .context("onion dial timeout")),
             Ok(res) => res.map_err(|err| {
                 if err.to_string().contains("connect_by_proxy") {
-                    TransportErrorKind::ProxyError(err)
+                    TransportErrorKind::ProxyError(err).into()
                 } else {
                     err.into()
                 }

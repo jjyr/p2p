@@ -29,7 +29,7 @@ async fn connect(
     timeout: Duration,
     original: Option<Multiaddr>,
     tcp_config: TcpSocketConfig,
-) -> Result<(Multiaddr, WsStream)> {
+) -> anyhow::Result<(Multiaddr, WsStream)> {
     let addr = address.await?;
     match multiaddr_to_socketaddr(&addr) {
         Some(socket_address) => {
@@ -37,7 +37,10 @@ async fn connect(
             let tcp = tcp_dial(socket_address, tcp_config, timeout).await?;
 
             match crate::runtime::timeout(timeout, client_async_with_config(url, tcp, None)).await {
-                Err(_) => Err(TransportErrorKind::Io(io::ErrorKind::TimedOut.into())),
+                Err(_) => Err(anyhow::Error::from(TransportErrorKind::Io(
+                    io::ErrorKind::TimedOut.into(),
+                ))
+                .context("connect timeout")),
                 Ok(res) => Ok((original.unwrap_or(addr), {
                     let (stream, _) = res.map_err(|err| {
                         if let Error::Io(e) = err {
@@ -50,7 +53,7 @@ async fn connect(
                 })),
             }
         }
-        None => Err(TransportErrorKind::NotSupported(original.unwrap_or(addr))),
+        None => Err(TransportErrorKind::NotSupported(original.unwrap_or(addr)).into()),
     }
 }
 
@@ -69,7 +72,7 @@ impl WsTransport {
 }
 
 pub type WsDialFuture =
-    TransportFuture<Pin<Box<dyn Future<Output = Result<(Multiaddr, WsStream)>> + Send>>>;
+    TransportFuture<Pin<Box<dyn Future<Output = anyhow::Result<(Multiaddr, WsStream)>> + Send>>>;
 
 impl TransportDial for WsTransport {
     type DialFuture = WsDialFuture;

@@ -1,4 +1,5 @@
 use crate::{SessionId, secio::error::SecioError};
+use anyhow::Error as AnyhowError;
 use multiaddr::Multiaddr;
 use std::io::Error as IOError;
 use thiserror::Error;
@@ -48,8 +49,8 @@ pub enum DialerErrorKind {
     #[error("handshake error: `{0:?}`")]
     HandshakeError(HandshakeErrorKind),
     /// Transport error
-    #[error("transport error: `{0:?}`")]
-    TransportError(TransportErrorKind),
+    #[error("transport error: {0:#}")]
+    TransportError(#[source] AnyhowError),
 }
 
 #[derive(Error, Debug)]
@@ -73,8 +74,8 @@ pub enum ListenErrorKind {
     #[error("repeated connection, sessio id: `{0:?}`")]
     RepeatedConnection(SessionId),
     /// Transport error
-    #[error("transport error: `{0:?}`")]
-    TransportError(TransportErrorKind),
+    #[error("transport error: {0:#}")]
+    TransportError(#[source] AnyhowError),
 }
 
 #[derive(Error, Debug)]

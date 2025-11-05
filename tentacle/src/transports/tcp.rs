@@ -24,14 +24,14 @@ async fn connect(
     timeout: Duration,
     original: Option<Multiaddr>,
     tcp_config: TcpSocketConfig,
-) -> Result<(Multiaddr, TcpStream)> {
+) -> anyhow::Result<(Multiaddr, TcpStream)> {
     let addr = address.await?;
     match multiaddr_to_socketaddr(&addr) {
         Some(socket_address) => {
             let stream = tcp_dial(socket_address, tcp_config, timeout).await?;
             Ok((original.unwrap_or(addr), stream))
         }
-        None => Err(TransportErrorKind::NotSupported(original.unwrap_or(addr))),
+        None => Err(TransportErrorKind::NotSupported(original.unwrap_or(addr)).into()),
     }
 }
 
@@ -82,7 +82,7 @@ impl TcpTransport {
 pub type TcpListenFuture =
     TransportFuture<Pin<Box<dyn Future<Output = Result<(Multiaddr, TcpBaseListenerEnum)>> + Send>>>;
 pub type TcpDialFuture =
-    TransportFuture<Pin<Box<dyn Future<Output = Result<(Multiaddr, TcpStream)>> + Send>>>;
+    TransportFuture<Pin<Box<dyn Future<Output = anyhow::Result<(Multiaddr, TcpStream)>> + Send>>>;
 
 impl TransportListen for TcpTransport {
     type ListenFuture = TcpListenFuture;
